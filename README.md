@@ -1,3 +1,83 @@
+KivyのTextInputでIMEを使用するためのコード
+====
+
+
++ 2017/12/17の本家のバージョンをもとにしています
++ [Add textedit event for text editing by IME #5109](https://github.com/kivy/kivy/pull/5109)の要素をマージしています
++ このKivyの内容をインストールすることで[kivy_textedit_sample](https://github.com/Adachinski/kivy_textedit_sample)を使用することができます。
+
+インストール方法
+-------
+kivy-textime.zipをダウンロードして保存してください。
+
+検証環境はPython3.6でOSはwindows10の６４bit環境です。
+
+※未検証ですが恐らくmac環境でも動作すると思います。
+
+[Use development Kivy(Kivyの開発バージョンを使用する)](https://pyky.github.io/kivy-doc-ja/installation/installation-windows.html#use-development-kivy)のやり方を基本にしています。
+
+
+1. [Visual C++ 2015 BuildTools](http://landinghub.visualstudio.com/visual-cpp-build-tools)をダウンロードしてインストールします。
+
+2. 環境変数PathにインストールしたBuildToolsのパスを通します。例は以下
+```
+C:\Program Files\Microsoft VS Code\bin
+```
+3. コマンドプロンプト[cmd]を立ち上げます。
+
+4. 環境変数を設定します
+
+```
+set USE_SDL2=1
+set USE_GSTREAMER=1
+```
+※PowerShellだと以下になります　
+```
+$env:USE_SDL2 = 1
+$env:USE_GSTREAMER = 1
+```
+
+5. PiPとwhileを最新にします
+
+```
+python -m pip install --upgrade pip wheel setuptools
+```
+
+6. 依存関係をインストールします
+
+```
+python -m pip install cython docutils pygments pypiwin32 kivy.deps.sdl2 kivy.deps.glew kivy.deps.gstreamer kivy.deps.glew_dev kivy.deps.sdl2_dev kivy.deps.gstreamer_dev
+```
+
+7. Kivyのビルドをします
+zipを展開した、kivy-masterの直下に移動してビルドします
+
+```
+python -m pip install .
+```
+
+8.Kivyを実行します
+[kivy_textedit_sample](https://github.com/Adachinski/kivy_textedit_sample)を実行(main.py)して起動時のログを確認してください。
+
+※TextとWindowのでProviderがSDL2になっていることを必ず確認してください。Pygameが表示されている場合は環境変数の設定がおかしいので見直してください。
+
+```
+[INFO   ] [Text        ] Provider: sdl2
+[INFO   ] [OSC         ] using <thread> for socket
+[INFO   ] [Window      ] Provider: sdl2
+
+```
+
+この状態で実行すると、TextinputIMEの隣のラベルに全角（日本語入力）で未確定の文字（Enterを入力する前）の文字が表示されます。
+
+注意事項としては、スペースキーを押して変換はできますが変換候補の一覧は表示されません。また入力ですが一度に入力できる文字数は最大１５文字までです。
+
+Kivyで日本語入力ができない問題の詳しい説明は[リンク先の記事](https://qiita.com/dario_okazaki/items/8c6953166b336e83e417)を見てみてください。
+
+
+
+
+------------------------------------------
 Kivy
 ====
 
@@ -43,9 +123,10 @@ If you need assistance, you can ask for help on our mailing list:
 
 We also have an IRC channel:
 
-* Server  : irc.freenode.net
-* Port    : 6667, 6697 (SSL only)
-* Channel : #kivy
+* Server     : irc.freenode.net
+* Port       : 6667, 6697 (SSL only)
+* Channel    : #kivy
+* Web client : [WebChat](https://webchat.freenode.net/?nick=kvuser.&channels=kivy&uio=d4)
 
 Contributing
 ------------
@@ -62,9 +143,10 @@ discussions about developing the Kivy framework and its sister projects:
 
 IRC channel:
 
-* Server  : irc.freenode.net
-* Port    : 6667, 6697 (SSL only)
-* Channel : #kivy-dev
+* Server     : irc.freenode.net
+* Port       : 6667, 6697 (SSL only)
+* Channel    : #kivy-dev
+* Web client : [WebChat](https://webchat.freenode.net/?nick=kvuser.&channels=kivy-dev&uio=d4)
 
 Sister projects
 ---------------
