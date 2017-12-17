@@ -132,6 +132,7 @@ class SDL2MotionEventProvider(MotionEventProvider):
 
 class WindowSDL(WindowBase):
 
+    __events__ = ('on_textedit',)
     _do_resize_ev = None
 
     def __init__(self, **kwargs):
@@ -608,7 +609,9 @@ class WindowSDL(WindowBase):
             elif action == 'textinput':
                 text = args[0]
                 self.dispatch('on_textinput', text)
-
+            elif action == 'textedit':
+                text = args[0]
+                self.dispatch('on_textedit', text)
             # unhandled event !
             else:
                 Logger.trace('WindowSDL: Unhandled event %s' % str(event))
@@ -736,3 +739,6 @@ class WindowSDL(WindowBase):
 
     def ungrab_mouse(self):
         self._win.grab_mouse(False)
+
+    def on_textedit(self, text):
+        pass
