@@ -71,7 +71,7 @@ class Image(Widget):
 
     texture = ObjectProperty(None, allownone=True)
     '''Texture object of the image. The texture represents the original, loaded
-    image texture. It is streched and positioned during rendering according to
+    image texture. It is stretched and positioned during rendering according to
     the :attr:`allow_stretch` and :attr:`keep_ratio` properties.
 
     Depending of the texture creation, the value will be a
@@ -253,7 +253,7 @@ class Image(Widget):
             if self._coreimage is not None:
                 self._coreimage.unbind(on_texture=self._on_tex_change)
             try:
-                if PY2:
+                if PY2 and isinstance(filename, str):
                     filename = filename.decode('utf-8')
                 self._coreimage = ci = CoreImage(filename, mipmap=mipmap,
                                                  anim_delay=self.anim_delay,
@@ -310,9 +310,9 @@ class Image(Widget):
         except AttributeError:
             pass
 
-        olsource = self.source
+        oldsource = self.source
         self.source = ''
-        self.source = olsource
+        self.source = oldsource
 
     def on_nocache(self, *args):
         if self.nocache and self._coreimage:

@@ -59,6 +59,9 @@ configuration. You should edit it appropriately with your app name
 etc. You can set variables to control most or all of the parameters
 passed to python-for-android.
 
+Install buildozer's `dependencies
+<https://buildozer.readthedocs.io/en/latest/installation.html#targeting-android>`_.
+
 Finally, plug in your android device and run::
 
     buildozer android debug deploy run
@@ -132,7 +135,7 @@ Installation of Examples
 Kivy comes with many examples, and these can be a great place to start
 trying the Kivy launcher. You can run them as below::
 
-#. Download the `Kivy demos for Android <http://kivy.googlecode.com/files/kivydemo-for-android.zip>`_
+#. Download the `Kivy demos for Android <https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/kivy/kivydemo-for-android.zip>`_
 #. Unzip the contents and go to the folder `kivydemo-for-android`
 #. Copy all the the subfolders here to
 
@@ -156,7 +159,7 @@ python-for-android use the :code:`--release` option to build.py. This
 creates a release APK in the :code:`bin` directory, which you must
 properly sign and zipalign.
 The procedure for doing this is described in the Android documentation
-at http://developer.android.com/guide/publishing/app-signing.html -
+at https://developer.android.com/studio/publish/app-signing.html#signing-manually -
 all the necessary tools come with the Android SDK.
 
 

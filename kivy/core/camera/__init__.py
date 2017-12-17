@@ -5,6 +5,9 @@ Camera
 Core class for acquiring the camera and converting its input into a
 :class:`~kivy.graphics.texture.Texture`.
 
+.. versionchanged:: 1.10.0
+    The pygst and videocapture providers have been removed.
+
 .. versionchanged:: 1.8.0
     There is now 2 distinct Gstreamer implementation: one using Gi/Gst
     working for both Python 2+3 with Gstreamer 1.0, and one using PyGST
@@ -129,20 +132,15 @@ class CameraBase(EventDispatcher):
     def on_load(self):
         pass
 
+
 # Load the appropriate providers
 providers = ()
 
-if platform == 'win':
-    providers += (('videocapture', 'camera_videocapture',
-                   'CameraVideoCapture'), )
-elif platform == 'macosx':
+if platform == 'macosx':
     providers += (('avfoundation', 'camera_avfoundation',
                    'CameraAVFoundation'), )
 elif platform == 'android':
     providers += (('android', 'camera_android', 'CameraAndroid'), )
-else:
-    #providers += (('gi', 'camera_gi', 'CameraGi'), )
-    providers += (('pygst', 'camera_pygst', 'CameraPyGst'), )
 
 providers += (('opencv', 'camera_opencv', 'CameraOpenCV'), )
 

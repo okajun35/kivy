@@ -129,7 +129,8 @@ class GestureContainer(EventDispatcher):
         and end of a stroke and if `update_bbox` is called. If you are going
         to analyze a gesture mid-stroke, you may need to set the `no_cache`
         argument to True.'''
-        if self._cache_time == self._update_time and not kwargs.get('no_cache'):
+        if self._cache_time == self._update_time and \
+                not kwargs.get('no_cache'):
             return self._vectors
 
         vecs = []
@@ -362,7 +363,7 @@ class GestureSurface(FloatLayout):
         bounding box of another gesture - if so, they should be merged.'''
         if touch.grab_current is not self:
             return
-        if not self.collide_point(touch.y, touch.y):
+        if not self.collide_point(touch.x, touch.y):
             return
 
         # Retrieve the GestureContainer object that handles this touch, and
@@ -402,7 +403,8 @@ class GestureSurface(FloatLayout):
 
         # dispatch later only if we have a window
         elif self.temporal_window > 0:
-            Clock.schedule_once(self._complete_dispatcher, self.temporal_window)
+            Clock.schedule_once(self._complete_dispatcher,
+                                    self.temporal_window)
 
 # -----------------------------------------------------------------------------
 # Gesture related methods
@@ -433,11 +435,11 @@ class GestureSurface(FloatLayout):
         return g
 
     def init_stroke(self, g, touch):
-        l = [touch.x, touch.y]
+        points = [touch.x, touch.y]
         col = g.color
 
         new_line = Line(
-            points=l,
+            points=points,
             width=self.line_width,
             group=g.id)
         g._strokes[str(touch.uid)] = new_line

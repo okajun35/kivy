@@ -16,11 +16,13 @@ Widgets
 .. |x| replace:: :attr:`~kivy.uix.widget.Widget.x`
 .. |y| replace:: :attr:`~kivy.uix.widget.Widget.y`
 .. |left| replace:: :attr:`~kivy.uix.widget.Widget.left`
+.. |right| replace:: :attr:`~kivy.uix.widget.Widget.right`
 .. |top| replace:: :attr:`~kivy.uix.widget.Widget.top`
 .. |center_x| replace:: :attr:`~kivy.uix.widget.Widget.center_x`
 .. |center_y| replace:: :attr:`~kivy.uix.widget.Widget.center_y`
 .. |orientation| replace:: :attr:`~kivy.uix.boxlayout.BoxLayout.orientation`
 .. |Widget| replace:: :class:`~kivy.uix.widget.Widget`
+.. |Spinner| replace:: :class:`~kivy.uix.spinner.Spinner`
 .. |Button| replace:: :class:`~kivy.uix.button.Button`
 .. |Image| replace:: :class:`~kivy.uix.image.Image`
 .. |Canvas| replace:: :class:`~kivy.graphics.Canvas`
@@ -217,14 +219,15 @@ Consider the following example:
             # however it's provided here to make things clear
             size_hint: 1, 1
 
-load kivy catalog::
+Now load kivy catalog by typing the following, but replacing $KIVYDIR
+with the directory of your installation (discoverable via
+:py:mod:`os.path.dirname(kivy.__file__)`)::
 
     cd $KIVYDIR/examples/demo/kivycatalog
     python main.py
 
-Replace $KIVYDIR with the directory of your installation of Kivy. Click on the
-button labeled `Box Layout` from the left. Now paste the code from above into
-the editor panel on the right.
+A new window will appear. Click in the area below the 'Welcome' |Spinner| on the
+left and replace the text there with your kv code from above.
 
 .. image:: images/size_hint[B].jpg
 
@@ -237,7 +240,7 @@ of the |layout| |width|/|height|.
 .. image:: images/size_hint[b_].jpg
 
 You can see here that, although we specify |size_hint_x| and |size_hint_y| both
-to be .5, only |size_hint_x| seems to be honored. That is because |BoxLayout|
+to be .5, only |size_hint_y| seems to be honored. That is because |BoxLayout|
 controls the |size_hint_y| when |orientation| is `vertical` and |size_hint_x|
 when |orientation| is 'horizontal'. The controlled dimension's size is calculated depending
 upon the total no. of |children| in the |BoxLayout|. In this example, one child has
@@ -276,7 +279,7 @@ If you want to control the absolute |size| of a |Widget|, you can set
 
 |pos_hint| is a dict, which defaults to empty. As for |size_hint|, layouts honor
 |pos_hint| differently, but generally you can add values to any of the |pos|
-attributes (|x|, |y|, |left|, |top|, |center_x|, |center_y|) to have the
+attributes (|x|, |y|, |right|, |top|, |center_x|, |center_y|) to have the
 |Widget| positioned relative to its |parent|.
 
 Let's experiment with the following code in kivycatalog to understand |pos_hint|

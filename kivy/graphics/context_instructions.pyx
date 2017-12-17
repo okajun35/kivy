@@ -21,6 +21,7 @@ __all__ = ('Color', 'BindTexture', 'PushMatrix', 'PopMatrix',
            'Rotate', 'Scale', 'Translate', 'MatrixInstruction',
            'gl_init_resources')
 
+from kivy.compat import PY2
 from kivy.graphics.instructions cimport *
 from kivy.graphics.transformation cimport *
 
@@ -405,7 +406,10 @@ cdef class LoadIdentity(ContextInstruction):
         'projection_mat'.
         '''
         def __get__(self):
-            return self.context_state.keys()[0]
+            if PY2:
+                return self.context_state.keys()[0]
+            else:
+                return list(self.context_state.keys())[0]
         def __set__(self, value):
             self.context_state = {value: Matrix()}
 
@@ -692,7 +696,7 @@ cdef class Scale(Transform):
 
     .. deprecated:: 1.6.0
         Deprecated single scale property in favor of x, y, z, xyz axis
-        independant scaled factors.
+        independent scaled factors.
     '''
     def __init__(self, *args, **kwargs):
         cdef double x, y, z
@@ -742,7 +746,7 @@ cdef class Scale(Transform):
                 return self._x
             else:
                 raise Exception("trying to access deprecated property" +\
-                    " 'scale' on Scale instruction with non unifrom scaling!")
+                    " 'scale' on Scale instruction with non uniform scaling!")
 
         def __set__(self, s):
             Logger.warning("scale property is deprecated, use xyz, x, " +\

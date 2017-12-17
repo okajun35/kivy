@@ -2,28 +2,28 @@
 FFmpeg based video abstraction
 ==============================
 
-To use, you need to install ffpyplyaer and have a compiled ffmpeg shared
+To use, you need to install ffpyplayer and have a compiled ffmpeg shared
 library.
 
     https://github.com/matham/ffpyplayer
 
 The docs there describe how to set this up. But briefly, first you need to
 compile ffmpeg using the shared flags while disabling the static flags (you'll
-probably have to set the fPIC flag, e.g. CFLAGS=-fPIC). Here's some
+probably have to set the fPIC flag, e.g. CFLAGS=-fPIC). Here are some
 instructions: https://trac.ffmpeg.org/wiki/CompilationGuide. For Windows, you
 can download compiled GPL binaries from http://ffmpeg.zeranoe.com/builds/.
-Similarly, you should download SDL.
+Similarly, you should download SDL2.
 
-Now, you should a ffmpeg and sdl directory. In each, you should have a include,
-bin, and lib directory, where e.g. for Windows, lib contains the .dll.a files,
-while bin contains the actual dlls. The include directory holds the headers.
-The bin directory is only needed if the shared libraries are not already on
-the path. In the environment define FFMPEG_ROOT and SDL_ROOT, each pointing to
-the ffmpeg, and SDL directories, respectively. (If you're using SDL2,
-the include directory will contain a directory called SDL2, which then holds
-the headers).
+Now, you should have ffmpeg and sdl directories. In each, you should have an
+'include', 'bin' and 'lib' directory, where e.g. for Windows, 'lib' contains
+the .dll.a files, while 'bin' contains the actual dlls. The 'include' directory
+holds the headers. The 'bin' directory is only needed if the shared libraries
+are not already in the path. In the environment, define FFMPEG_ROOT and
+SDL_ROOT, each pointing to the ffmpeg and SDL directories respectively. (If
+you're using SDL2, the 'include' directory will contain an 'SDL2' directory,
+which then holds the headers).
 
-Once defined, download the ffpyplayer git and run
+Once defined, download the ffpyplayer git repo and run
 
     python setup.py build_ext --inplace
 
@@ -33,14 +33,14 @@ Finally, before running you need to ensure that ffpyplayer is in python's path.
 
     When kivy exits by closing the window while the video is playing,
     it appears that the __del__method of VideoFFPy
-    is not called. Because of this the VideoFFPy object is not
+    is not called. Because of this, the VideoFFPy object is not
     properly deleted when kivy exits. The consequence is that because
     MediaPlayer creates internal threads which do not have their daemon
-    flag set, when the main threads exists it'll hang and wait for the other
+    flag set, when the main threads exists, it'll hang and wait for the other
     MediaPlayer threads to exit. But since __del__ is not called to delete the
-    MediaPlayer object, those threads will remain alive hanging kivy. What this
-    means is that you have to be sure to delete the MediaPlayer object before
-    kivy exits by setting it to None.
+    MediaPlayer object, those threads will remain alive, hanging kivy. What
+    this means is that you have to be sure to delete the MediaPlayer object
+    before kivy exits by setting it to None.
 '''
 
 __all__ = ('VideoFFPy', )
@@ -76,6 +76,7 @@ def _log_callback(message, level):
     message = message.strip()
     if message:
         logger_func[level]('ffpyplayer: {}'.format(message))
+
 
 if not get_log_callback():
     set_log_callback(_log_callback)
@@ -187,25 +188,27 @@ class VideoFFPy(VideoBase):
                 fbo['tex_v'] = 2
                 self._texture = fbo.texture
             else:
-                self._texture = Texture.create(size=self._size, colorfmt='rgba')
+                self._texture = Texture.create(size=self._size,
+                                                colorfmt='rgba')
 
             # XXX FIXME
-            #self.texture.add_reload_observer(self.reload_buffer)
+            # self.texture.add_reload_observer(self.reload_buffer)
             self._texture.flip_vertical()
             self.dispatch('on_load')
 
         if self._texture:
             if self._out_fmt == 'yuv420p':
                 dy, du, dv, _ = img.to_memoryview()
-                self._tex_y.blit_buffer(dy, colorfmt='luminance')
-                self._tex_u.blit_buffer(du, colorfmt='luminance')
-                self._tex_v.blit_buffer(dv, colorfmt='luminance')
+                if dy and du and dv:
+                    self._tex_y.blit_buffer(dy, colorfmt='luminance')
+                    self._tex_u.blit_buffer(du, colorfmt='luminance')
+                    self._tex_v.blit_buffer(dv, colorfmt='luminance')
+                    self._fbo.ask_update()
+                    self._fbo.draw()
             else:
                 self._texture.blit_buffer(
                     img.to_memoryview()[0], colorfmt='rgba')
 
-            self._fbo.ask_update()
-            self._fbo.draw()
             self.dispatch('on_frame')
 
     def _next_frame_run(self):
@@ -215,8 +218,8 @@ class VideoFFPy(VideoBase):
         did_dispatch_eof = False
         seek_queue = self._seek_queue
 
-        # fast path, if the source video is yuv420p, we'll use a glsl shader for
-        # buffer conversion to rgba
+        # fast path, if the source video is yuv420p, we'll use a glsl shader
+        # for buffer conversion to rgba
         while not self._ffplayer_need_quit:
             src_pix_fmt = ffplayer.get_metadata().get('src_pix_fmt')
             if not src_pix_fmt:

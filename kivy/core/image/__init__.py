@@ -40,6 +40,7 @@ will be used only for caching)::
 '''
 import re
 from base64 import b64decode
+import imghdr
 
 __all__ = ('Image', 'ImageLoader', 'ImageData')
 
@@ -315,7 +316,7 @@ class ImageLoader(object):
 
         Returns an Image with a list of type ImageData stored in Image._data
         '''
-        # read zip in menory for faster access
+        # read zip in memory for faster access
         _file = BytesIO(open(filename, 'rb').read())
         # read all images inside the zip
         z = zipfile.ZipFile(_file)
@@ -326,13 +327,13 @@ class ImageLoader(object):
         image = None
         for zfilename in znamelist:
             try:
-                #read file and store it in mem with fileIO struct around it
+                # read file and store it in mem with fileIO struct around it
                 tmpfile = BytesIO(z.read(zfilename))
                 ext = zfilename.split('.')[-1].lower()
                 im = None
                 for loader in ImageLoader.loaders:
-                    if (ext not in loader.extensions()
-                        or not loader.can_load_memory()):
+                    if (ext not in loader.extensions() or
+                            not loader.can_load_memory()):
                         continue
                     Logger.debug('Image%s: Load <%s> from <%s>' %
                                  (loader.__name__[11:], zfilename, filename))
@@ -348,7 +349,7 @@ class ImageLoader(object):
                     # overwritten
                     image_data.append(im._data[0])
                     image = im
-                #else: if not image file skip to next
+                # else: if not image file skip to next
             except:
                 Logger.warning('Image: Unable to load image'
                                '<%s> in zip <%s> trying to continue...'
@@ -424,6 +425,8 @@ class ImageLoader(object):
             return ImageLoader.zip_loader(filename)
         else:
             im = None
+            # Get actual image format instead of extension if possible
+            ext = imghdr.what(filename) or ext
             for loader in ImageLoader.loaders:
                 if ext not in loader.extensions():
                     continue
@@ -801,7 +804,7 @@ class Image(EventDispatcher):
 
         The filename should have the '.png' extension because the texture data
         read from the GPU is in the RGBA format. '.jpg' might work but has not
-        been heavilly tested so some providers might break when using it.
+        been heavily tested so some providers might break when using it.
         Any other extensions are not officially supported.
 
         The flipped parameter flips the saved image vertically, and
@@ -837,7 +840,7 @@ class Image(EventDispatcher):
             # we might have a ImageData object to use
             data = self.image._data[0]
             if data.data is not None:
-                if data.fmt not in ('rgba', 'rgb'):
+                if data.fmt in ('rgba', 'rgb'):
                     # fast path, use the "raw" data when keep_data is used
                     size = data.width, data.height
                     pixels = data.data
@@ -883,7 +886,7 @@ class Image(EventDispatcher):
         '''
         data = self.image._data[0]
 
-        # can't use this fonction without ImageData
+        # can't use this function without ImageData
         if data.data is None:
             raise EOFError('Image data is missing, make sure that image is'
                            'loaded with keep_data=True keyword.')
@@ -932,7 +935,7 @@ image_libs += [
 libs_loaded = core_register_libs('image', image_libs)
 
 from os import environ
-if not 'KIVY_DOC' in environ and not libs_loaded:
+if 'KIVY_DOC' not in environ and not libs_loaded:
     import sys
 
     Logger.critical('App: Unable to get any Image provider, abort.')

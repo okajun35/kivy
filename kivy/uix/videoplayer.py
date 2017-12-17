@@ -21,7 +21,7 @@ will automatically load the associated annotation file if it exists.
 An annotation file is JSON-based, providing a list of label dictionary items.
 The key and value must match one of the :class:`VideoPlayerAnnotation` items.
 For example, here is a short version of a jsa file that you can find in
-`examples/widgets/softboy.jsa`::
+`examples/widgets/cityCC0.jsa`::
 
 
     [
@@ -32,14 +32,14 @@ For example, here is a short version of a jsa file that you can find in
         "text": "You can change the background color"}
     ]
 
-For our softboy.avi example, the result will be:
+For our cityCC0.mpg example, the result will be:
 
 .. image:: images/videoplayer-annotation.jpg
     :align: center
 
 If you want to experiment with annotation files, test with::
 
-    python -m kivy.uix.videoplayer examples/widgets/softboy.avi
+    python -m kivy.uix.videoplayer examples/widgets/cityCC0.mpg
 
 Fullscreen
 ----------
@@ -642,7 +642,7 @@ class VideoPlayer(GridLayout):
             window.add_widget(self)
 
             # ensure the video widget is in 0, 0, and the size will be
-            # reajusted
+            # readjusted
             self.pos = (0, 0)
             self.size = (100, 100)
             self.pos_hint = {}

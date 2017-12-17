@@ -22,7 +22,7 @@ class TextInputTest(unittest.TestCase):
     def test_wordbreak(self):
         self.test_txt = "Firstlongline\n\nSecondveryverylongline"
 
-        ti = TextInput(width=30, size_hint_x=None)
+        ti = TextInput(width='30dp', size_hint_x=None)
         ti.bind(text=self.on_text)
         ti.text = self.test_txt
 
@@ -33,4 +33,4 @@ class TextInputTest(unittest.TestCase):
         # Check if wordbreaking is correctly done
         # If so Secondvery... should start from the 7th line
         pos_S = self.test_txt.index('S')
-        self.assertEquals(instance.get_cursor_from_index(pos_S), (0,6))
+        self.assertEquals(instance.get_cursor_from_index(pos_S), (0, 6))

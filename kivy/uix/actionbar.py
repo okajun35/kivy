@@ -15,7 +15,7 @@ An :class:`ActionBar` contains an :class:`ActionView` with various
 :class:`ContextualActionViews <kivy.uix.actionbar.ContextualActionView>`.
 An :class:`ActionView` will contain an :class:`ActionPrevious` having title,
 app_icon and previous_icon properties. An :class:`ActionView` will contain
-subclasses of :class:`ActionItems <ActionItem>`. Some predefined ones inlcude
+subclasses of :class:`ActionItems <ActionItem>`. Some predefined ones include
 an :class:`ActionButton`, an :class:`ActionToggleButton`, an
 :class:`ActionCheck`, an :class:`ActionSeparator` and an :class:`ActionGroup`.
 
@@ -117,7 +117,7 @@ class ActionItem(object):
 
     mipmap = BooleanProperty(True)
     '''Defines whether the image/icon dispayed on top of the button uses a
-    mipmap or not.
+       mipmap or not.
 
        :attr:`mipmap` is a :class:`~kivy.properties.BooleanProperty` and
        defaults to `True`.
@@ -303,6 +303,17 @@ class ActionGroup(ActionItem, Spinner):
        defaults to 'normal'.
     '''
 
+    dropdown_width = NumericProperty(0)
+    '''If non zero, provides the width for the associated DropDown. This is
+    useful when some items in the ActionGroup's DropDown are wider than usual
+    and you don't want to make the ActionGroup widget itself wider.
+
+    :attr:`dropdown_width` is an :class:`~kivy.properties.NumericProperty`
+    and defaults to 0.
+
+    .. versionadded:: 1.10.0
+    '''
+
     def __init__(self, **kwargs):
         self.list_action_item = []
         self._list_overflow_items = []
@@ -345,7 +356,8 @@ class ActionGroup(ActionItem, Spinner):
         children = ddn.container.children
 
         if children:
-            ddn.width = max(self.width, max(c.pack_width for c in children))
+            ddn.width = self.dropdown_width or max(
+                self.width, max(c.pack_width for c in children))
         else:
             ddn.width = self.width
 
@@ -475,20 +487,32 @@ class ActionView(BoxLayout):
             group.use_separator = value
         self.overflow_group.use_separator = value
 
+    def remove_widget(self, widget):
+        super(ActionView, self).remove_widget(widget)
+        if isinstance(widget, ActionOverflow):
+            for item in widget.list_action_item:
+                self._list_action_items.remove(item)
+
+        if widget in self._list_action_items:
+            self._list_action_items.remove(widget)
+
     def _clear_all(self):
+        lst = self._list_action_items[:]
         self.clear_widgets()
         for group in self._list_action_group:
             group.clear_widgets()
 
         self.overflow_group.clear_widgets()
         self.overflow_group.list_action_item = []
+        self._list_action_items = lst
 
     def _layout_all(self):
         # all the items can fit to the view, so expand everything
         super_add = super(ActionView, self).add_widget
         self._state = 'all'
         self._clear_all()
-        super_add(self.action_previous)
+        if not self.action_previous.parent:
+            super_add(self.action_previous)
         if len(self._list_action_items) > 1:
             for child in self._list_action_items[1:]:
                 child.inside_group = False
@@ -512,7 +536,8 @@ class ActionView(BoxLayout):
         super_add = super(ActionView, self).add_widget
         self._state = 'group'
         self._clear_all()
-        super_add(self.action_previous)
+        if not self.action_previous.parent:
+            super_add(self.action_previous)
         if len(self._list_action_items) > 1:
             for child in self._list_action_items[1:]:
                 super_add(child)
@@ -533,7 +558,8 @@ class ActionView(BoxLayout):
         hidden_items = []
         hidden_groups = []
         total_width = 0
-        super_add(self.action_previous)
+        if not self.action_previous.parent:
+            super_add(self.action_previous)
 
         width = (self.width - self.overflow_group.pack_width -
                  self.action_previous.minimum_width)
@@ -555,7 +581,7 @@ class ActionView(BoxLayout):
         if total_width < self.width:
             for group in self._list_action_group:
                 if group.pack_width + total_width +\
-                   group.separator_width < width:
+                        group.separator_width < width:
                     super_add(group)
                     group.show_group()
                     total_width += (group.pack_width +
@@ -563,7 +589,6 @@ class ActionView(BoxLayout):
 
                 else:
                     hidden_groups.append(group)
-
         group_index = len(self.children) - 1
         # if space is left then display other ActionItems
         if total_width < self.width:
@@ -589,7 +614,8 @@ class ActionView(BoxLayout):
                 over_add(child)
 
             overflow_group.show_group()
-            super_add(overflow_group)
+            if not self.overflow_group.parent:
+                super_add(overflow_group)
 
     def on_width(self, width, *args):
         # determine the layout to use
@@ -736,6 +762,7 @@ if __name__ == "__main__":
                 ActionButton:
                     text: 'Btn4'
             ActionGroup:
+                dropdown_width: 200
                 text: 'Group1'
                 ActionButton:
                     text: 'Btn5'

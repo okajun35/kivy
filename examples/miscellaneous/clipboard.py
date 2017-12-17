@@ -9,28 +9,26 @@ Builder.load_string('''
 #:import Clipboard kivy.core.clipboard.Clipboard
 <Clip>:
     orientation: 'vertical'
-    BoxLayout:
+    GridLayout:
+        cols: 3
         size_hint_y: None
         height: self.minimum_height
         Button:
-            text: 'Paste raw clipboard'
+            text: 'Paste raw'
             size_hint_y: None
             height: 60
-            pos_hint: {'top': 1}
             on_release: root.make_labels(Clipboard.paste())
 
         Button:
-            text: 'Paste & format clipboard'
+            text: 'Paste & format'
             size_hint_y: None
             height: 60
-            pos_hint: {'top': 1}
             on_release: root.make_pretty_labels(Clipboard.paste())
 
         Button:
             text: 'Remove widgets'
             size_hint_y: None
             height: 60
-            pos_hint: {'top': 1}
             on_release: container.clear_widgets()
 
     ScrollView:
@@ -60,5 +58,6 @@ class Clip(BoxLayout):
         for value in values.split(os.linesep):
             label = Label(text=value, size_hint_y=None, height=30)
             self.ids.container.add_widget(label)
+
 
 runTouchApp(Clip())

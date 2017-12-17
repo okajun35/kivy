@@ -4,7 +4,7 @@ Interactive launcher
 
 .. versionadded:: 1.3.0
 
-.. versionchanged:: 1.9.2
+.. deprecated:: 1.10.0
     The interactive launcher has been deprecated.
 
 The :class:`InteractiveLauncher` provides a user-friendly python shell
@@ -215,7 +215,7 @@ class SafeMembrane(object):
     # methods that make calls against _ref and threadsafe whenever data will be
     # written to or if a method will be called. SafeMembrane instances should
     # be unwrapped whenever passing them into the thread
-    #use type() to determine if an object is a SafeMembrane while debugging
+    # use type() to determine if an object is a SafeMembrane while debugging
     def __repr__(self):
         return self._ref.__repr__()
 
@@ -242,8 +242,8 @@ class SafeMembrane(object):
         return SafeMembrane(r)
 
     def __setattr__(self, attr, val, osa=object.__setattr__):
-        if (attr == '_ref'
-                or hasattr(type(self), attr) and not attr.startswith('__')):
+        if (attr == '_ref' or
+                hasattr(type(self), attr) and not attr.startswith('__')):
             osa(self, attr, val)
         else:
             self.safeIn()
@@ -322,14 +322,14 @@ class InteractiveLauncher(SafeMembrane):
 
     def run(self):
         self.thread.start()
-        #Proxy behavior starts after this is set. Before this point, attaching
-        #widgets etc can only be done through the Launcher's app attribute
+        # Proxy behavior starts after this is set. Before this point, attaching
+        # widgets etc can only be done through the Launcher's app attribute
         self._ref = self.app
 
     def stop(self):
         EventLoop.quit = True
         self.thread.join()
 
-    #Act like the app instance even before _ref is set
+    # Act like the app instance even before _ref is set
     def __repr__(self):
         return self.app.__repr__()

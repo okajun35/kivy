@@ -16,6 +16,7 @@ TODO:
 __all__ = ('WindowSDL2', )
 
 from os.path import join
+import sys
 from kivy import kivy_data_dir
 from kivy.logger import Logger
 from kivy.base import EventLoop, ExceptionManager, stopTouchApp
@@ -185,6 +186,8 @@ class WindowSDL(WindowBase):
         self.bind(minimum_width=self._set_minimum_size,
                   minimum_height=self._set_minimum_size)
 
+        self.bind(allow_screensaver=self._set_allow_screensaver)
+
     def _set_minimum_size(self, *args):
         minimum_width = self.minimum_width
         minimum_height = self.minimum_height
@@ -194,6 +197,9 @@ class WindowSDL(WindowBase):
             Logger.warning(
                 'Both Window.minimum_width and Window.minimum_height must be '
                 'bigger than 0 for the size restriction to take effect.')
+
+    def _set_allow_screensaver(self, *args):
+        self._win.set_allow_screensaver(self.allow_screensaver)
 
     def _event_filter(self, action):
         from kivy.app import App
@@ -213,7 +219,8 @@ class WindowSDL(WindowBase):
                 return 0
 
             if not app.dispatch('on_pause'):
-                Logger.info('WindowSDL: App doesn\'t support pause mode, stop.')
+                Logger.info(
+                    'WindowSDL: App doesn\'t support pause mode, stop.')
                 stopTouchApp()
                 return 0
 
@@ -271,6 +278,7 @@ class WindowSDL(WindowBase):
             # will be fired.
             self._pos = (0, 0)
             self._set_minimum_size()
+            self._set_allow_screensaver()
 
             if state == 'hidden':
                 self._focus = False
@@ -378,12 +386,19 @@ class WindowSDL(WindowBase):
         self._win.flip()
         super(WindowSDL, self).flip()
 
+    def _get_window_pos(self):
+        return self._win.get_window_pos()
+
+    def _set_window_pos(self, x, y):
+        self._win.set_window_pos(x, y)
+
     def _set_cursor_state(self, value):
         self._win._set_cursor_state(value)
 
     def _fix_mouse_pos(self, x, y):
         y -= 1
-        self.mouse_pos = x * self._density, (self.system_size[1] - y) * self._density
+        self.mouse_pos = (x * self._density,
+                          (self.system_size[1] - y) * self._density)
         return x, y
 
     def _mainloop(self):
@@ -392,7 +407,7 @@ class WindowSDL(WindowBase):
         # for android/iOS, we don't want to have any event nor executing our
         # main loop while the pause is going on. This loop wait any event (not
         # handled by the event filter), and remove them from the queue.
-        # Nothing happen during the pause on iOS, except gyroscope value sended
+        # Nothing happen during the pause on iOS, except gyroscope value sent
         # over joystick. So it's safe.
         while self._pause_loop:
             self._win.wait_event()
@@ -466,9 +481,9 @@ class WindowSDL(WindowBase):
 
                 self._mouse_meta = self.modifiers
                 self._mouse_btn = btn
-                #times = x if y == 0 else y
-                #times = min(abs(times), 100)
-                #for k in range(times):
+                # times = x if y == 0 else y
+                # times = min(abs(times), 100)
+                # for k in range(times):
                 self._mouse_down = True
                 self.dispatch('on_mouse_down',
                     self._mouse_x, self._mouse_y, btn, self.modifiers)
@@ -485,7 +500,8 @@ class WindowSDL(WindowBase):
                 # don't use trigger here, we want to delay the resize event
                 ev = self._do_resize_ev
                 if ev is None:
-                    ev = self._do_resize_ev = Clock.schedule_once(self._do_resize, .1)
+                    ev = Clock.schedule_once(self._do_resize, .1)
+                    self._do_resize_ev = ev
                 else:
                     ev()
 
@@ -552,17 +568,27 @@ class WindowSDL(WindowBase):
                 if action == 'keydown':
                     self._update_modifiers(mod, key)
                 else:
-                    self._update_modifiers(mod)  # ignore the key, it
-                                                 # has been released
+                    # ignore the key, it has been released
+                    self._update_modifiers(mod)
 
                 # if mod in self._meta_keys:
                 if (key not in self._modifiers and
-                    key not in self.command_keys.keys()):
+                        key not in self.command_keys.keys()):
                     try:
-                        kstr = unichr(key)
+                        kstr_chr = unichr(key)
+                        try:
+                            # On android, there is no 'encoding' attribute.
+                            # On other platforms, if stdout is redirected,
+                            # 'encoding' may be None
+                            encoding = getattr(sys.stdout, 'encoding',
+                                               'utf8') or 'utf8'
+                            kstr_chr.encode(encoding)
+                            kstr = kstr_chr
+                        except UnicodeError:
+                            pass
                     except ValueError:
                         pass
-                #if 'shift' in self._modifiers and key\
+                # if 'shift' in self._modifiers and key\
                 #        not in self.command_keys.keys():
                 #    return
 
@@ -630,7 +656,7 @@ class WindowSDL(WindowBase):
     def mainloop(self):
         # don't known why, but pygame required a resize event
         # for opengl, before mainloop... window reinit ?
-        #self.dispatch('on_resize', *self.size)
+        # self.dispatch('on_resize', *self.size)
 
         while not EventLoop.quit and EventLoop.status == 'started':
             try:
@@ -682,7 +708,7 @@ class WindowSDL(WindowBase):
     def request_keyboard(self, callback, target, input_type='text'):
         self._sdl_keyboard = super(WindowSDL, self).\
             request_keyboard(callback, target, input_type)
-        self._win.show_keyboard()
+        self._win.show_keyboard(self._system_keyboard, self.softinput_mode)
         Clock.schedule_interval(self._check_keyboard_shown, 1 / 5.)
         return self._sdl_keyboard
 
@@ -704,3 +730,9 @@ class WindowSDL(WindowBase):
     def unmap_key(self, key):
         if key in self.key_map:
             del self.key_map[key]
+
+    def grab_mouse(self):
+        self._win.grab_mouse(True)
+
+    def ungrab_mouse(self):
+        self._win.grab_mouse(False)

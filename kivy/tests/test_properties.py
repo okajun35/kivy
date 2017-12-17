@@ -90,10 +90,10 @@ class PropertiesTestCase(unittest.TestCase):
         a.set(wid, 99)
         self.assertEqual(a.get(wid), 99)
 
-        #try:
+        # try:
         #    a.set(wid, '')  # string shouldn't be accepted
         #    self.fail('number accept string, fail.')
-        #except ValueError:
+        # except ValueError:
         #    pass
 
     def test_listcheck(self):
@@ -409,6 +409,17 @@ class PropertiesTestCase(unittest.TestCase):
         a.set(wid, u'99in')
         self.assertEqual(a.get(wid), 9504.0 * density)
         self.assertEqual(a.get_format(wid), 'in')
+
+    def test_numeric_string_without_units(self):
+        from kivy.properties import NumericProperty
+
+        a = NumericProperty()
+        a.link(wid, 'a')
+        a.link_deps(wid, 'a')
+        self.assertEqual(a.get(wid), 0)
+
+        a.set(wid, '2')
+        self.assertEqual(a.get(wid), 2)
 
     def test_property_rebind(self):
         from kivy.uix.label import Label

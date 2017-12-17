@@ -89,7 +89,6 @@ class ButtonBehavior(object):
     defaults to `None`.
     '''
 
-    
     min_state_time = NumericProperty(0)
     '''The minimum period of time which the widget must remain in the
     `'down'` state.
@@ -106,7 +105,7 @@ class ButtonBehavior(object):
 
     .. versionadded:: 1.9.0
 
-    .. versionchanged:: 1.9.2
+    .. versionchanged:: 1.10.0
         The default value is now False.
 
     :attr:`always_release` is a :class:`~kivy.properties.BooleanProperty` and
@@ -117,7 +116,8 @@ class ButtonBehavior(object):
         self.register_event_type('on_press')
         self.register_event_type('on_release')
         if 'min_state_time' not in kwargs:
-            self.min_state_time = float(Config.get('graphics', 'min_state_time'))
+            self.min_state_time = float(Config.get('graphics',
+                                                   'min_state_time'))
         super(ButtonBehavior, self).__init__(**kwargs)
         self.__state_event = None
         self.__touch_time = None
@@ -165,9 +165,9 @@ class ButtonBehavior(object):
         touch.ungrab(self)
         self.last_touch = touch
 
-        if (not self.always_release
-                and not self.collide_point(*touch.pos)):
-            self.state = 'normal'
+        if (not self.always_release and
+                not self.collide_point(*touch.pos)):
+            self._do_release()
             return
 
         touchtime = time() - self.__touch_time

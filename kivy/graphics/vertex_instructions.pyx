@@ -55,18 +55,15 @@ __all__ = ('Triangle', 'Quad', 'Rectangle', 'RoundedRectangle', 'BorderImage', '
            'Line', 'Point', 'Mesh', 'GraphicException', 'Bezier', 'SmoothLine')
 
 
-include "config.pxi"
+include "../include/config.pxi"
 include "common.pxi"
+include "memory.pxi"
 
 from os import environ
 from kivy.graphics.vbo cimport *
 from kivy.graphics.vertex cimport *
 from kivy.graphics.instructions cimport *
-from kivy.graphics.c_opengl cimport *
-IF USE_OPENGL_MOCK == 1:
-    from kivy.graphics.c_opengl_mock cimport *
-IF USE_OPENGL_DEBUG == 1:
-    from kivy.graphics.c_opengl_debug cimport *
+from kivy.graphics.cgl cimport *
 from kivy.logger import Logger
 from kivy.graphics.texture cimport Texture
 from kivy.utils import platform
@@ -288,7 +285,7 @@ cdef class StripMesh(VertexInstruction):
 
         if vcount == 0 or icount < 3:
             return 0
-        if self.icount + icount > 65533:  # (optim of) self.icount + icount - 2 > 65535
+        if self.icount + icount > 65533:  # (optimization of) self.icount + icount - 2 > 65535
             return 0
 
         if self.icount > 0:
@@ -346,9 +343,9 @@ cdef class Mesh(VertexInstruction):
     .. versionadded:: 1.1.0
 
     :Parameters:
-        `vertices`: list
+        `vertices`: iterable
             List of vertices in the format (x1, y1, u1, v1, x2, y2, u2, v2...).
-        `indices`: list
+        `indices`: iterable
             List of indices in the format (i1, i2, i3...).
         `mode`: str
             Mode of the vbo. Check :attr:`mode` for more information. Defaults to
@@ -370,6 +367,21 @@ cdef class Mesh(VertexInstruction):
                 attribute vec2 v_tc;
 
             in glsl's vertex shader.
+
+    .. versionchanged:: 1.8.1
+        Before, `vertices` and `indices` would always be converted to a list,
+        now, they are only converted to a list if they do not implement the
+        buffer interface. So e.g. numpy arrays, python arrays etc. are used
+        in place, without creating any additional copies. However, the
+        buffers cannot be readonly (even though they are not changed, due to
+        a cython limitation) and must be contiguous in memory.
+
+    .. note::
+        When passing a memoryview or a instance that implements the buffer
+        interface, `vertices` should be a buffer of floats (`'f'` code in
+        python array) and `indices` should be a buffer of unsigned short (`'H'`
+        code in python array). Arrays in other formats will still have to be
+        converted internally, negating any potential gain.
     '''
 
     def __init__(self, **kwargs):
@@ -416,37 +428,29 @@ cdef class Mesh(VertexInstruction):
     cdef void build(self):
         if self.is_built:
             return
-        cdef int i
-        cdef long vcount = len(self._vertices)
-        cdef long icount = len(self._indices)
-        cdef float *vertices = NULL
-        cdef unsigned short *indices = NULL
-        cdef list lvertices = self._vertices
-        cdef list lindices = self._indices
         cdef vsize = self.batch.vbo.vertex_format.vsize
 
-        if vcount == 0 or icount == 0:
+        # if user updated the list, but didn't do self.indices = ... then
+        # we'd not know about it, so ensure _indices/_indices is up to date
+        if len(self._vertices) != self.vcount:
+            self._vertices, self._fvertices = _ensure_float_view(self._vertices,
+                &self._pvertices)
+            self.vcount = len(self._vertices)
+
+        if len(self._indices) != self.icount:
+            if len(self._indices) > 65535:
+                raise GraphicException('Cannot upload more than 65535 indices'
+                                       '(OpenGL ES 2 limitation)')
+            self._indices, self._lindices = _ensure_ushort_view(self._indices,
+                &self._pindices)
+            self.icount = len(self._indices)
+
+        if self.vcount == 0 or self.icount == 0:
             self.batch.clear_data()
             return
 
-        vertices = <float *>malloc(vcount * sizeof(float))
-        if vertices == NULL:
-            raise MemoryError('vertices')
-
-        indices = <unsigned short *>malloc(icount * sizeof(unsigned short))
-        if indices == NULL:
-            free(vertices)
-            raise MemoryError('indices')
-
-        for i in xrange(vcount):
-            vertices[i] = lvertices[i]
-        for i in xrange(icount):
-            indices[i] = lindices[i]
-
-        self.batch.set_data(vertices, <int>(vcount / vsize), indices, <int>icount)
-
-        free(vertices)
-        free(indices)
+        self.batch.set_data(&self._pvertices[0], <int>(self.vcount / vsize),
+                            &self._pindices[0], <int>self.icount)
 
     property vertices:
         '''List of x, y, u, v coordinates used to construct the Mesh. Right now,
@@ -456,7 +460,9 @@ cdef class Mesh(VertexInstruction):
         def __get__(self):
             return self._vertices
         def __set__(self, value):
-            self._vertices = list(value)
+            self._vertices, self._fvertices = _ensure_float_view(value,
+                &self._pvertices)
+            self.vcount = len(self._vertices)
             self.flag_update()
 
     property indices:
@@ -470,7 +476,9 @@ cdef class Mesh(VertexInstruction):
                 raise GraphicException(
                     'Cannot upload more than 65535 indices (OpenGL ES 2'
                     ' limitation - consider setting KIVY_GLES_LIMITS)')
-            self._indices = list(value)
+            self._indices, self._lindices = _ensure_ushort_view(value,
+                &self._pindices)
+            self.icount = len(self._indices)
             self.flag_update()
 
     property mode:
@@ -479,7 +487,7 @@ cdef class Mesh(VertexInstruction):
         'triangle_fan'.
         '''
         def __get__(self):
-            self.batch.get_mode()
+            return self.batch.get_mode()
         def __set__(self, mode):
             self.batch.set_mode(mode)
 
@@ -840,27 +848,70 @@ cdef class BorderImage(Rectangle):
 
     :Parameters:
         `border`: list
-            Border information in the format (top, right, bottom, left).
+            Border information in the format (bottom, right, top, left).
             Each value is in pixels.
 
-        `auto_scale`: bool
+        `auto_scale`: string
             .. versionadded:: 1.9.1
+
+            .. versionchanged:: 1.9.2 
+
+                This used to be a bool and has been changed to be a string
+                state. 
+
+            Can be one of 'off', 'both', 'x_only', 'y_only', 'y_full_x_lower',
+            'x_full_y_lower', 'both_lower'.
+
+            Autoscale controls the behavior of the 9-slice.
+
+            By default the border values are preserved exactly, meaning that
+            if the total size of the object is smaller than the border values
+            you will have some 'rendering errors' where your texture appears
+            inside out. This also makes it impossible to achieve a rounded
+            button that scales larger than the size of its source texture. The
+            various options for auto_scale will let you achieve some mixes of
+            the 2 types of rendering.
+
+            'off': is the default and behaves as BorderImage did when auto_scale
+            was False before.
+
+            'both': Scales both x and y dimension borders according to the size
+            of the BorderImage, this disables the BorderImage making it render
+            the same as a regular Image. 
+
+            'x_only': The Y dimension functions as the default, and the X
+            scales to the size of the BorderImage's width.
+
+            'y_only': The X dimension functions as the default, and the Y 
+            scales to the size of the BorderImage's height.
+
+            'y_full_x_lower': Y scales as in 'y_only', Y scales if the
+            size of the scaled version would be smaller than the provided
+            border only.
+
+            'x_full_y_lower': X scales as in 'x_only', Y scales if the
+            size of the scaled version would be smaller than the provided
+            border only.
+
+            'both_lower': This is what auto_scale did when it was True in 1.9.1
+            Both X and Y dimensions will be scaled if the BorderImage is
+            smaller than the source.
 
             If the BorderImage's size is less than the sum of it's
             borders, horizontally or vertically, and this property is
-            set to True, the borders will be rescaled to accomodate for
+            set to True, the borders will be rescaled to accommodate for
             the smaller size.
 
     '''
     cdef list _border
     cdef list _display_border
-    cdef int _auto_scale
+    cdef str _auto_scale
 
     def __init__(self, **kwargs):
         Rectangle.__init__(self, **kwargs)
         v = kwargs.get('border')
         self.border = v if v is not None else (10, 10, 10, 10)
-        self.auto_scale = kwargs.get('auto_scale', False)
+        self.auto_scale = kwargs.get('auto_scale', 'off')
         self.display_border = kwargs.get('display_border', [])
 
     cdef void build(self):
@@ -875,7 +926,7 @@ cdef class BorderImage(Rectangle):
         w = self.w
         h = self.h
 
-        # width and heigth of texture in pixels, and tex coord space
+        # width and height of texture in pixels, and tex coord space
         cdef float tw, th, tcw, tch
         cdef float *tc = self._tex_coords
         cdef float tc0, tc1, tc2, tc7
@@ -899,7 +950,35 @@ cdef class BorderImage(Rectangle):
         tb[3] = b3 / tw * tcw
 
         cdef float sb0, sb1, sb2, sb3
-        if self.auto_scale:
+
+        if self._auto_scale == 'off':
+            sb0, sb1, sb2, sb3 = b0, b1, b2, b3
+        elif self._auto_scale == 'both':
+            sb0 = (b0/th) * h
+            sb1 = (b1/tw) * w
+            sb2 = (b2/th) * h
+            sb3 = (b3/tw) * w
+        elif self._auto_scale == 'x_only':
+            sb0 = b0
+            sb1 = (b1/tw) * w
+            sb2 = b2
+            sb3 = (b3/tw) * w
+        elif self._auto_scale == 'y_only':
+            sb0 = (b0/th) * h
+            sb1 = b1
+            sb2 = (b2/th) * h
+            sb3 = b3
+        elif self._auto_scale == 'y_full_x_lower':
+            sb0 = (b0/th) * h
+            sb1 = min((b1/tw) * w, b1)
+            sb2 = (b2/th) * h
+            sb3 = min((b3/tw) * w, b3)
+        elif self._auto_scale == 'x_full_y_lower':
+            sb0 = min((b0/th) * h, b0)
+            sb1 = (b1/tw) * w
+            sb2 = min((b2/th) * h, b2)
+            sb3 = (b3/tw) * w
+        elif self._auto_scale == 'both_lower':
             sb0 = min((b0/th) * h, b0)
             sb1 = min((b1/tw) * w, b1)
             sb2 = min((b2/th) * h, b2)
@@ -968,7 +1047,7 @@ cdef class BorderImage(Rectangle):
             15, 14,  7,     7,  8, 15,  # top middle
             10, 15,  8,     8,  9, 10,  # top left
             11, 12, 15,    15, 10, 11,  # center left
-            12, 13, 14,    14, 15, 12]  # center middel
+            12, 13, 14,    14, 15, 12]  # center middle
 
         self.batch.set_data(<vertex_t *>vertices, 16, indices, 54)
 
@@ -989,8 +1068,8 @@ cdef class BorderImage(Rectangle):
         def __get__(self):
             return self._auto_scale
 
-        def __set__(self, value):
-            self._auto_scale = int(bool(value))
+        def __set__(self, str value):
+            self._auto_scale = value
             self.flag_update()
 
     property display_border:
@@ -1034,7 +1113,7 @@ cdef class Ellipse(Rectangle):
         cdef int i, angle_dir
         cdef float angle_start, angle_end, angle_range
         cdef float x, y, angle, rx, ry, ttx, tty, tx, ty, tw, th
-        cdef float cx, cy, tangetial_factor, radial_factor, fx, fy
+        cdef float cx, cy, tangential_factor, radial_factor, fx, fy
         cdef vertex_t *vertices = NULL
         cdef unsigned short *indices = NULL
         cdef int count = self._segments
@@ -1083,7 +1162,7 @@ cdef class Ellipse(Rectangle):
 
         # super fast ellipse drawing
         # credit goes to: http://slabode.exofire.net/circle_draw.shtml
-        tangetial_factor = tan(angle_range)
+        tangential_factor = tan(angle_range)
         radial_factor = cos(angle_range)
 
         # Calculate the coordinates for a circle with radius 0.5 about
@@ -1107,8 +1186,8 @@ cdef class Ellipse(Rectangle):
 
             fx = -y
             fy = x
-            x += fx * tangetial_factor
-            y += fy * tangetial_factor
+            x += fx * tangential_factor
+            y += fy * tangential_factor
             x *= radial_factor
             y *= radial_factor
 

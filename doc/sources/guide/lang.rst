@@ -368,7 +368,7 @@ can also iterate over these widgets and access them dictionary style::
 .. Note::
 
     Although the `self.ids` method is very concise, it is generally regarded as
-    'best practise' to use the ObjectProperty. This creates a direct reference,
+    'best practice' to use the ObjectProperty. This creates a direct reference,
     provides faster access and is more explicit.
 
 Dynamic Classes
@@ -427,13 +427,13 @@ Consider the code below in my.kv:
 
     <MyFirstWidget>:
         Button:
-            on_press: self.text(txt_inpt.text)
+            on_press: root.text(txt_inpt.text)
         TextInput:
             id: txt_inpt
 
     <MySecondWidget>:
         Button:
-            on_press: self.text(txt_inpt.text)
+            on_press: root.text(txt_inpt.text)
         TextInput:
             id: txt_inpt
 
@@ -461,7 +461,7 @@ In my.kv:
 
     <MyFirstWidget,MySecondWidget>:
         Button:
-            on_press: self.text(txt_inpt.text)
+            on_press: root.text(txt_inpt.text)
         TextInput:
             id: txt_inpt
 

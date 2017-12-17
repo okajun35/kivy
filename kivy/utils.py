@@ -89,10 +89,10 @@ def strtotuple(s):
 
 
 def rgba(s, *args):
-    '''Return a kivy color (4 value from 0-1 range) from either a hex string or
-       a list of 0-255 values
+    '''Return a Kivy color (4 value from 0-1 range) from either a hex string or
+    a list of 0-255 values.
 
-    .. versionadded:: 1.9.2
+    .. versionadded:: 1.10.0
     '''
     if isinstance(s, string_types):
         return get_color_from_hex(s)
@@ -157,6 +157,7 @@ def is_color_transparent(c):
     if float(c[3]) == 0.:
         return True
     return False
+
 
 hex_colormap = {
     'aliceblue': '#f0f8ff',
@@ -364,15 +365,15 @@ class SafeList(list):
 class QueryDict(dict):
     '''QueryDict is a dict() that can be queried with dot.
 
-    .. versionadded:: 1.0.4
-
-  ::
+    ::
 
         d = QueryDict()
         # create a key named toto, with the value 1
         d.toto = 1
         # it's the same as
         d['toto'] = 1
+
+    .. versionadded:: 1.0.4
     '''
 
     def __getattr__(self, attr):

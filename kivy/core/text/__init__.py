@@ -36,9 +36,11 @@ __all__ = ('LabelBase', 'Label')
 
 import re
 import os
+from ast import literal_eval
 from functools import partial
 from copy import copy
 from kivy import kivy_data_dir
+from kivy.config import Config
 from kivy.utils import platform
 from kivy.graphics.texture import Texture
 from kivy.core import core_select_lib
@@ -47,7 +49,12 @@ from kivy.resources import resource_find, resource_add_path
 from kivy.compat import PY2
 from kivy.setupconfig import USE_SDL2
 
-DEFAULT_FONT = 'Roboto'
+
+if 'KIVY_DOC' not in os.environ:
+    _default_font_paths = literal_eval(Config.get('kivy', 'default_font'))
+    DEFAULT_FONT = _default_font_paths.pop(0)
+else:
+    DEFAULT_FONT = None
 
 FONT_REGULAR = 0
 FONT_ITALIC = 1
@@ -110,7 +117,7 @@ class LabelBase(object):
             stripped. If `halign` is `justify` it is implicitly True.
         `strip_reflow`: bool, defaults to True
             Whether text that has been reflowed into a second line should
-            be striped, even if `strip` is False. This is only in effect when
+            be stripped, even if `strip` is False. This is only in effect when
             `size_hint_x` is not None, because otherwise lines are never
             split.
         `unicode_errors`: str, defaults to `'replace'`
@@ -121,7 +128,7 @@ class LabelBase(object):
         `outline_color`: tuple, defaults to (0, 0, 0)
             Color of the outline.
 
-    .. versionchanged:: 1.9.2
+    .. versionchanged:: 1.10.0
         `outline_width` and `outline_color` were added.
 
     .. versionchanged:: 1.9.0
@@ -210,6 +217,7 @@ class LabelBase(object):
 
         self.options = options
         self.texture = None
+        self.is_shortened = False
         self.resolve_font_name()
 
     @staticmethod
@@ -368,7 +376,7 @@ class LabelBase(object):
             `margin` int, the amount of space to leave between the margins
             and the text. This is in addition to :attr:`padding_x`.
 
-        :retruns:
+        :returns:
             the text shortened to fit into a single line.
         '''
         textwidth = self.get_cached_extents()
@@ -388,6 +396,7 @@ class LabelBase(object):
         dir = opts['shorten_from'][0]
         elps = textwidth('...')[0]
         if elps > uw:
+            self.is_shortened = True
             if textwidth('..')[0] <= uw:
                 return '..'
             else:
@@ -405,6 +414,7 @@ class LabelBase(object):
                 l1 = textwidth(text[:e1])[0]
                 l2 = textwidth(text[s2 + 1:])[0]
             if e1 == -1 or l1 + l2 > uw:
+                self.is_shortened = True
                 if len(c):
                     opts['split_str'] = ''
                     res = self.shorten(text, margin)
@@ -417,6 +427,7 @@ class LabelBase(object):
 
             # both word fits, and there's at least on split_str
             if s2 == e1:  # there's only on split_str
+                self.is_shortened = True
                 return chr('{0}...{1}').format(text[:e1], text[s2 + 1:])
 
             # both the first and last word fits, and they start/end at diff pos
@@ -452,6 +463,7 @@ class LabelBase(object):
                 l1 = textwidth(text[:max(0, e1)])[0]
             # if split_str
             if s2 == -1 or l2 + l1 > uw:
+                self.is_shortened = True
                 if len(c):
                     opts['split_str'] = ''
                     res = self.shorten(text, margin)
@@ -462,6 +474,7 @@ class LabelBase(object):
 
             # both word fits, and there's at least on split_str
             if s2 == e1:  # there's only on split_str
+                self.is_shortened = True
                 return chr('{0}...{1}').format(text[:e1], text[s2 + 1:])
 
             # both the first and last word fits, and they start/end at diff pos
@@ -472,6 +485,7 @@ class LabelBase(object):
                     break
                 ss2 = f_rev(0, s2 - offset)
 
+        self.is_shortened = True
         return chr('{0}...{1}').format(text[:e1], text[s2 + 1:])
 
     def _default_line_options(self, lines):
@@ -516,7 +530,7 @@ class LabelBase(object):
             # divide left over space between `spaces`
             # TODO implement a better method of stretching glyphs?
             if (uw is not None and halign == 'justify' and line and not
-                layout_line.is_last_line):
+                    layout_line.is_last_line):
                 # number spaces needed to fill, and remainder
                 n, rem = divmod(max(uww - lw, 0), sw)
                 n = int(n)
@@ -596,8 +610,11 @@ class LabelBase(object):
         text = self.text
         if strip:
             text = text.strip()
+
+        self.is_shortened = False
         if uw is not None and options['shorten']:
             text = self.shorten(text)
+
         self._cached_lines = lines = []
         if not text:
             return 0, 0
@@ -742,7 +759,8 @@ class LabelBase(object):
     def fontid(self):
         '''Return a unique id for all font parameters'''
         return str([self.options[x] for x in (
-            'font_size', 'font_name_r', 'bold', 'italic', 'underline', 'strikethrough')])
+            'font_size', 'font_name_r', 'bold',
+            'italic', 'underline', 'strikethrough')])
 
     def _get_text_size(self):
         return self._text_size
@@ -756,6 +774,7 @@ class LabelBase(object):
 
     usersize = property(_get_text_size, _set_text_size,
                         doc='''(deprecated) Use text_size instead.''')
+
 
 # Load the appropriate provider
 label_libs = []
@@ -774,9 +793,5 @@ if 'KIVY_DOC' not in os.environ:
         Logger.critical('App: Unable to get a Text provider, abort.')
         sys.exit(1)
 
-# For the first initalization, register the default font
-    Label.register('Roboto',
-                   'data/fonts/Roboto-Regular.ttf',
-                   'data/fonts/Roboto-Italic.ttf',
-                   'data/fonts/Roboto-Bold.ttf',
-                   'data/fonts/Roboto-BoldItalic.ttf')
+# For the first initialization, register the default font
+    Label.register(DEFAULT_FONT, *_default_font_paths)

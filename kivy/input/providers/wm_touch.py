@@ -34,6 +34,7 @@ class WM_MotionEvent(MotionEvent):
         args = (self.id, self.uid, str(self.spos), self.device)
         return '<WMMotionEvent id:%d uid:%d pos:%s device:%s>' % args
 
+
 if 'KIVY_DOC' in os.environ:
     # documentation hack
     WM_MotionEventProvider = None
@@ -56,7 +57,7 @@ else:
             self.touches = {}
             self.uid = 0
 
-            # get window handle, and register to recive WM_TOUCH messages
+            # get window handle, and register to receive WM_TOUCH messages
             self.hwnd = windll.user32.GetActiveWindow()
             windll.user32.RegisterTouchWindow(self.hwnd, 1)
 

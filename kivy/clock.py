@@ -156,7 +156,7 @@ Even if x and y changes within one frame, the callback is only run once.
 :meth:`CyClockBase.create_trigger` has a timeout parameter that
 behaves exactly like :meth:`CyClockBase.schedule_once`.
 
-.. versionchanged:: 1.9.2
+.. versionchanged:: 1.10.0
 
     :meth:`CyClockBase.create_trigger` now has a ``interval`` parameter.
     If False, the default, it'll create an event similar to
@@ -190,7 +190,7 @@ multiple ways. E.g::
     Clock.unschedule(event2)
 
     # unschedule using Clock.unschedule with the callback
-    # NOT RECCOMENDED
+    # NOT RECOMMENDED
     Clock.unschedule(my_callback)
 
 The best way to unschedule a callback is with :meth:`ClockEvent.cancel`.
@@ -206,7 +206,7 @@ discouraged because it's significantly slower than when using the event.
 Threading and Callback Order
 -----------------------------
 
-Beginning with 1.9.2, all the events scheduled for the same frame, e.g.
+Beginning with 1.10.0, all the events scheduled for the same frame, e.g.
 all the events scheduled in the same frame with a ``timeout`` of ``0``,
 well be executed in the order they were scheduled.
 
@@ -238,7 +238,7 @@ Also, once the timeout is "close enough" to the desired timeout, as determined
 internally, Kivy will execute the callback in the current frame even when the
 "actual time" has not elapsed the ``timeout`` amount.
 
-Kivy offers now, since ``1.9.2``, multiple clocks with different behaviors.
+Kivy offers now, since ``1.10.0``, multiple clocks with different behaviors.
 
 Default Clock
 ^^^^^^^^^^^^^^
@@ -355,12 +355,10 @@ from sys import platform
 from os import environ
 from functools import wraps, partial
 from kivy.context import register_context
-from kivy.weakmethod import WeakMethod
 from kivy.config import Config
 from kivy.logger import Logger
 from kivy.compat import clock as _default_time, PY2
 import time
-from threading import Lock
 from kivy._clock import CyClockBase, ClockEvent, FreeClockEvent, \
     CyClockBaseFree
 try:
@@ -374,6 +372,8 @@ from threading import Event as ThreadingEvent
 
 def _get_sleep_obj():
     pass
+
+
 try:
     import ctypes
     if platform in ('win32', 'cygwin'):
@@ -500,7 +500,7 @@ class ClockBaseBehavior(object):
 
     @property
     def frames(self):
-        '''Number of internal frames (not necesseraly drawed) from the start of
+        '''Number of internal frames (not necessarily drawed) from the start of
         the clock.
 
         .. versionadded:: 1.8.0
@@ -613,7 +613,9 @@ class ClockBaseBehavior(object):
 
     time = staticmethod(partial(_default_time))
 
-ClockBaseBehavior.time.__doc__ = '''Proxy method for :func:`~kivy.compat.clock`. '''
+
+ClockBaseBehavior.time.__doc__ = \
+    '''Proxy method for :func:`~kivy.compat.clock`. '''
 
 
 class ClockBaseInterruptBehavior(ClockBaseBehavior):
@@ -640,10 +642,10 @@ class ClockBaseInterruptBehavior(ClockBaseBehavior):
             return
 
         if not event.timeout or (
-                not self.interupt_next_only and event.timeout
-                <= 1 / fps  # remaining time
-                - (self.time() - self._last_tick)  # elapsed time
-                + 4 / 5. * self.get_resolution()):  # resolution fudge factor
+                not self.interupt_next_only and event.timeout <=
+                1 / fps -  # remaining time
+                (self.time() - self._last_tick) +  # elapsed time
+                4 / 5. * self.get_resolution()):  # resolution fudge factor
             self._event.set()
 
     def idle(self):
@@ -737,15 +739,15 @@ class ClockBaseFreeInterruptOnly(
 
     def idle(self):
         fps = self._max_fps
+        current = self.time()
+        event = self._event
         if fps > 0:
-            event = self._event
             min_sleep = self.get_resolution()
             usleep = self.usleep
             undershoot = 4 / 5. * min_sleep
             min_t = self.get_min_free_timeout
             interupt_next_only = self.interupt_next_only
 
-            current = self.time()
             sleeptime = 1 / fps - (current - self._last_tick)
             while sleeptime - undershoot > min_sleep:
                 if event.is_set():
@@ -785,7 +787,7 @@ def mainthread(func):
 
         @mainthread
         def callback(self, *args):
-            print('The request succedded!',
+            print('The request succeeded!',
                   'This callback is called in the main thread.')
 
 
@@ -799,6 +801,7 @@ def mainthread(func):
             func(*args, **kwargs)
         Clock.schedule_once(callback_func, 0)
     return delayed_func
+
 
 if 'KIVY_DOC_INCLUDE' in environ:
     #: Instance of :class:`ClockBaseBehavior`.

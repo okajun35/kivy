@@ -4,6 +4,9 @@ DictAdapter
 
 .. versionadded:: 1.5
 
+.. deprecated:: 1.10.0
+    The feature has been deprecated.
+
 .. warning::
 
     This code is still experimental, and its API is subject to change in a
@@ -22,6 +25,7 @@ __all__ = ('DictAdapter', )
 
 from kivy.properties import ListProperty, DictProperty
 from kivy.adapters.listadapter import ListAdapter
+from kivy.utils import deprecated
 
 
 class DictAdapter(ListAdapter):
@@ -51,6 +55,7 @@ class DictAdapter(ListAdapter):
     to None.
     '''
 
+    @deprecated
     def __init__(self, **kwargs):
         if 'sorted_keys' in kwargs:
             if type(kwargs['sorted_keys']) not in (tuple, list):
@@ -74,7 +79,7 @@ class DictAdapter(ListAdapter):
     def initialize_sorted_keys(self, *args, **kwargs):
         stale_sorted_keys = False
         for key in self.sorted_keys:
-            if not key in self.data:
+            if key not in self.data:
                 stale_sorted_keys = True
                 break
         else:

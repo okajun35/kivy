@@ -260,7 +260,7 @@ class LoaderBase(object):
         try:
             proto = filename.split(':', 1)[0]
         except:
-            #if blank filename then return
+            # if blank filename then return
             return
         if load_callback is not None:
             data = load_callback(filename)
@@ -298,7 +298,7 @@ class LoaderBase(object):
         if proto == 'smb':
             try:
                 # note: it's important to load SMBHandler every time
-                # otherwise the data is occasionaly not loaded
+                # otherwise the data is occasionally not loaded
                 from smb.SMBHandler import SMBHandler
             except ImportError:
                 Logger.warning(
@@ -469,6 +469,7 @@ class LoaderBase(object):
 #
 # Loader implementation
 #
+
 
 if 'KIVY_DOC' in environ:
 

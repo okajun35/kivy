@@ -37,6 +37,7 @@ The Logger can be controlled via the Kivy configuration file::
     log_enable = 1
     log_dir = logs
     log_name = kivy_%y-%m-%d_%_.txt
+    log_maxfile = 100
 
 More information about the allowed values are described in the
 :mod:`kivy.config` module.
@@ -67,7 +68,7 @@ Logger = None
 
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = list(range(8))
 
-#These are the sequences need to get colored ouput
+# These are the sequences need to get colored ouput
 RESET_SEQ = "\033[0m"
 COLOR_SEQ = "\033[1;%dm"
 BOLD_SEQ = "\033[1m"
@@ -82,6 +83,7 @@ def formatter_message(message, use_color=True):
     else:
         message = message.replace("$RESET", "").replace("$BOLD", "")
     return message
+
 
 COLORS = {
     'TRACE': MAGENTA,
@@ -114,28 +116,31 @@ class FileHandler(logging.Handler):
         if randint(0, 20) != 0:
             return
 
-        # Use config ?
-        maxfiles = 100
+        from kivy.config import Config
+        maxfiles = Config.getint('kivy', 'log_maxfiles')
+
+        if maxfiles < 0:
+            return
 
         print('Purge log fired. Analysing...')
         join = os.path.join
         unlink = os.unlink
 
         # search all log files
-        l = [join(directory, x) for x in os.listdir(directory)]
-        if len(l) > maxfiles:
+        lst = [join(directory, x) for x in os.listdir(directory)]
+        if len(lst) > maxfiles:
             # get creation time on every files
-            l = [{'fn': x, 'ctime': os.path.getctime(x)} for x in l]
+            lst = [{'fn': x, 'ctime': os.path.getctime(x)} for x in lst]
 
             # sort by date
-            l = sorted(l, key=lambda x: x['ctime'])
+            lst = sorted(lst, key=lambda x: x['ctime'])
 
             # get the oldest (keep last maxfiles)
-            l = l[:-maxfiles]
-            print('Purge %d log files' % len(l))
+            lst = lst[:-maxfiles] if maxfiles else lst
+            print('Purge %d log files' % len(lst))
 
             # now, unlink every file in the list
-            for filename in l:
+            for filename in lst:
                 try:
                     unlink(filename['fn'])
                 except PermissionError as e:
@@ -190,7 +195,7 @@ class FileHandler(logging.Handler):
         if PY2:
             try:
                 if (isinstance(msg, unicode) and
-                    getattr(stream, 'encoding', None)):
+                        getattr(stream, 'encoding', None)):
                     ufs = u'%s\n'
                     try:
                         stream.write(ufs % msg)
@@ -299,7 +304,7 @@ class LogFile(object):
 
     def flush(self):
         return
-    
+
     def isatty(self):
         return False
 
@@ -308,6 +313,7 @@ def logger_config_update(section, key, value):
     if LOG_LEVELS.get(value) is None:
         raise AttributeError('Loglevel {0!r} doesn\'t exists'.format(value))
     Logger.setLevel(level=LOG_LEVELS.get(value))
+
 
 #: Kivy default logger instance
 Logger = logging.getLogger('kivy')
@@ -337,7 +343,8 @@ if 'KIVY_NO_CONSOLELOG' not in os.environ:
                 'rxvt-unicode-256color',
                 'xterm',
                 'xterm-256color',
-                ))
+            )
+        )
         if not use_color:
             # No additional control characters will be inserted inside the
             # levelname field, 7 chars will fit "WARNING"

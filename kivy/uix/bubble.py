@@ -104,7 +104,7 @@ class Bubble(GridLayout):
     graphics instruction. Used with the :attr:`background_image`.
     It should be used when using custom backgrounds.
 
-    It must be a list of 4 values: (top, right, bottom, left). Read the
+    It must be a list of 4 values: (bottom, right, top, left). Read the
     BorderImage instructions for more information about how to use it.
 
     :attr:`border` is a :class:`~kivy.properties.ListProperty` and defaults to
@@ -308,7 +308,7 @@ class Bubble(GridLayout):
                     if self_arrow_pos == 'bottom_left':
                         arrow_list = (self_arrow_img, Widget(), Widget())
                     elif self_arrow_pos == 'bottom_right':
-                        #add two dummy widgets
+                        # add two dummy widgets
                         arrow_list = (Widget(), Widget(), self_arrow_img)
                     widget_list = (self_content, self_arrow_layout)
             else:
@@ -320,7 +320,7 @@ class Bubble(GridLayout):
                                size=self_arrow_img.size)
                 sctr.add_widget(self_arrow_img)
                 if self_arrow_pos == 'top_mid':
-                    #add two dummy widgets
+                    # add two dummy widgets
                     arrow_list = (Widget(), sctr, Widget())
                 elif self_arrow_pos == 'top_left':
                     arrow_list = (sctr, Widget(), Widget())

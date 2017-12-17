@@ -29,10 +29,13 @@ keep this in mind when debugging or running in a
 `REPL <https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop>`_
 (Read-eval-print loop).
 
+.. versionchanged:: 1.10.0
+    The pygst and gi providers have been removed.
+
 .. versionchanged:: 1.8.0
-    There are now 2 distinct Gstreamer implementations: one using Gi/Gst working
-    for both Python 2+3 with Gstreamer 1.0, and one using PyGST working
-    only for Python 2 + Gstreamer 0.10.
+    There are now 2 distinct Gstreamer implementations: one using Gi/Gst
+    working for both Python 2+3 with Gstreamer 1.0, and one using PyGST
+    working only for Python 2 + Gstreamer 0.10.
 
 .. note::
 
@@ -122,7 +125,7 @@ class Sound(EventDispatcher):
     '''Pitch of a sound. 2 is an octave higher, .5 one below. This is only
     implemented for SDL2 audio provider yet.
 
-    .. versionadded:: 1.9.2
+    .. versionadded:: 1.10.0
 
     :attr:`pitch` is a :class:`~kivy.properties.NumericProperty` and defaults
     to 1.
@@ -204,7 +207,12 @@ class Sound(EventDispatcher):
         self.dispatch('on_stop')
 
     def seek(self, position):
-        '''Go to the <position> (in seconds).'''
+        '''Go to the <position> (in seconds).
+
+        .. note::
+            Most sound providers cannot seek when the audio is stopped.
+            Play then seek.
+        '''
         pass
 
     def on_play(self):
@@ -219,14 +227,11 @@ class Sound(EventDispatcher):
 audio_libs = []
 if platform in ('macosx', 'ios'):
     audio_libs += [('avplayer', 'audio_avplayer')]
-# from now on, prefer our gstplayer instead of gi/pygst.
 try:
     from kivy.lib.gstplayer import GstPlayer  # NOQA
     audio_libs += [('gstplayer', 'audio_gstplayer')]
 except ImportError:
-    #audio_libs += [('gi', 'audio_gi')]
-    if PY2:
-        audio_libs += [('pygst', 'audio_pygst')]
+    pass
 audio_libs += [('ffpyplayer', 'audio_ffpyplayer')]
 if USE_SDL2:
     audio_libs += [('sdl2', 'audio_sdl2')]

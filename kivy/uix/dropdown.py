@@ -30,8 +30,10 @@ dropdown. ::
     # create a dropdown with 10 buttons
     dropdown = DropDown()
     for index in range(10):
-        # when adding widgets, we need to specify the height manually (disabling
-        # the size_hint_y) so the dropdown can calculate the area it needs.
+        # When adding widgets, we need to specify the height manually
+        # (disabling the size_hint_y) so the dropdown can calculate
+        # the area it needs.
+
         btn = Button(text='Value %d' % index, size_hint_y=None, height=44)
 
         # for each button, attach a callback that will call the select() method
@@ -131,7 +133,7 @@ class DropDown(ScrollView):
     auto_width = BooleanProperty(True)
     '''By default, the width of the dropdown will be the same as the width of
     the attached widget. Set to False if you want to provide your own width.
-    
+
     :attr:`auto_width` is a :class:`~kivy.properties.BooleanProperty`
     and defaults to True.
     '''
@@ -173,7 +175,7 @@ class DropDown(ScrollView):
     :attr:`min_state_time` is a :class:`~kivy.properties.NumericProperty`
     and defaults to the `Config` value `min_state_time`.
 
-    .. versionadded:: 1.9.2
+    .. versionadded:: 1.10.0
     '''
 
     attach_to = ObjectProperty(allownone=True)
@@ -222,7 +224,8 @@ class DropDown(ScrollView):
             return True
 
     def on_container(self, instance, value):
-        pass
+        if value is not None:
+            self.container.bind(minimum_size=self._reposition)
 
     def open(self, widget):
         '''Open the dropdown list and attach it to a specific widget.
@@ -382,4 +385,3 @@ if __name__ == '__main__':
     btn.bind(on_release=show_dropdown, on_touch_move=touch_move)
 
     runTouchApp(btn)
-

@@ -11,7 +11,14 @@ import os
 import sys
 import platform as plf
 from time import ctime
-from configparser import ConfigParser
+
+try:
+    # PY3
+    from configparser import ConfigParser
+except ImportError:
+    # PY2
+    from ConfigParser import ConfigParser
+
 try:
     from StringIO import StringIO
     input = raw_input
@@ -86,6 +93,7 @@ def send_report(dict_report):
 # Start output debugging
 # ----------------------------------------------------------
 
+
 title('Global')
 report.append('OS platform     : %s | %s' % (plf.platform(), plf.machine()))
 report.append('Python EXE      : %s' % sys.executable)
@@ -138,25 +146,23 @@ title('Libraries')
 
 def testimport(libname):
     try:
-        l = __import__(libname)
-        report.append('%-20s exist at %s' % (libname, l.__file__))
+        lib = __import__(libname)
+        report.append('%-20s exist at %s' % (libname, lib.__file__))
     except ImportError:
         report.append('%-20s is missing' % libname)
 
-for x in (
-    'gst',
-    'pygame',
-    'pygame.midi',
-    'pyglet',
-    'videocapture',
-    'squirtle',
-    'PIL',
-    'sdl2',
-    'glew',
-    'opencv',
-    'opencv.cv',
-    'opencv.highgui',
-    'cython'):
+
+for x in ('gst',
+          'pygame',
+          'pygame.midi',
+          'squirtle',
+          'PIL',
+          'sdl2',
+          'glew',
+          'opencv',
+          'opencv.cv',
+          'opencv.highgui',
+          'cython'):
     testimport(x)
 report_dict['Libraries'] = report
 report = []

@@ -17,7 +17,7 @@ vertical list, where folders can be collapsed and expanded.
 .. image:: images/filechooser_list.png
 
 The :class:`FileChooserIconView` presents icons and text from left to right,
-wrappping them as required.
+wrapping them as required.
 
 .. image:: images/filechooser_icon.png
 
@@ -102,7 +102,7 @@ from kivy.properties import (
 from os import listdir
 from os.path import (
     basename, join, sep, normpath, expanduser, altsep,
-    splitdrive, realpath, getsize, isdir, abspath)
+    splitdrive, realpath, getsize, isdir, abspath, isfile, dirname)
 from fnmatch import fnmatch
 import collections
 
@@ -117,7 +117,8 @@ if platform == 'win':
     # Note: For some reason this doesn't work after a os.chdir(), no matter to
     #       what directory you change from where. Windows weirdness.
     try:
-        from win32file import FILE_ATTRIBUTE_HIDDEN, GetFileAttributesExW, error
+        from win32file import FILE_ATTRIBUTE_HIDDEN, GetFileAttributesExW, \
+                              error
         _have_win32file = True
     except ImportError:
         Logger.error('filechooser: win32file module is missing')
@@ -176,7 +177,7 @@ class FileSystemLocal(FileSystemAbstract):
             try:
                 return GetFileAttributesExW(fn)[0] & FILE_ATTRIBUTE_HIDDEN
             except error:
-                # This error can occured when a file is already accessed by
+                # This error can occurred when a file is already accessed by
                 # someone else. So don't return to True, because we have lot
                 # of chances to not being able to do anything with it.
                 Logger.exception('unable to access to <%s>' % fn)
@@ -348,8 +349,8 @@ class FileChooserController(RelativeLayout):
     filters = ListProperty([])
     '''
     filters specifies the filters to be applied to the files in the directory.
-    filters is a :class:`~kivy.properties.ListProperty` and defaults to []. This
-    is equivalent to '\*' i.e. nothing is filtered.
+    filters is a :class:`~kivy.properties.ListProperty` and defaults to [].
+    This is equivalent to '\*' i.e. nothing is filtered.
 
     The filters are not reset when the path changes. You need to do that
     yourself if desired.
@@ -423,8 +424,8 @@ class FileChooserController(RelativeLayout):
     '''
     Contains the list of files that are currently selected.
 
-    selection is a read-only :class:`~kivy.properties.ListProperty` and defaults
-    to [].
+    selection is a read-only :class:`~kivy.properties.ListProperty` and
+    defaults to [].
     '''
 
     multiselect = BooleanProperty(False)
@@ -452,15 +453,16 @@ class FileChooserController(RelativeLayout):
     rootpath to /users/foo, the user will be unable to go to /users or to any
     other directory not starting with /users/foo.
 
-    rootpath is a :class:`~kivy.properties.StringProperty` and defaults to None.
+    rootpath is a :class:`~kivy.properties.StringProperty` and defaults
+    to None.
 
     .. versionadded:: 1.2.0
 
     .. note::
 
         Similarly to :attr:`path`, whether `rootpath` is specified as
-        bytes or a unicode string determines the type of the filenames and paths
-        read.
+        bytes or a unicode string determines the type of the filenames and
+        paths read.
     '''
 
     progress_cls = ObjectProperty(FileChooserProgress)
@@ -836,6 +838,8 @@ class FileChooserController(RelativeLayout):
 
     def _add_files(self, path, parent=None):
         path = expanduser(path)
+        if isfile(path):
+            path = dirname(path)
 
         files = []
         fappend = files.append
